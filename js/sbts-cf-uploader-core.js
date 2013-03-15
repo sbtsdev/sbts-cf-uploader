@@ -1,9 +1,9 @@
-(function ($) {
-	var holder = document.getElementById('holder'),
+(function (win, doc, $) {
+	var holder = doc.getElementById('holder'),
 		tests = {
 			filereader: typeof FileReader != 'undefined',
-			dnd: 'draggable' in document.createElement('span'),
-			formdata: !!window.FormData,
+			dnd: 'draggable' in doc.createElement('span'),
+			formdata: !!win.FormData,
 			progress: "upload" in new XMLHttpRequest()
 		},
 		// TODO load valid types via ajax call to wordpress
@@ -24,7 +24,7 @@
 		},
 		containers = [],
 		files = [],
-		tree_delimeter = '/',
+		tree_delimeter = '/', // TODO pull tree_delimeter from server settings
 		tree = {},
 		tree_root_id = 'sbts_cf_tree',
 		tree_root_jq = '#' + tree_root_id,
@@ -39,7 +39,8 @@
 		file_list_jq = '.file-list',
 		message_jq = '.activity-response',
 		error_class = 'error-text',
-		progress_bar_jq = '#ajax_progress>span';
+		progress_bar_jq = '#ajax_progress>span',
+		plugin_url = win.sbts_cf_uploader ? win.sbts_cf_uploader.url : ''; // Not a good use of a global, to be fixed when we make this a Backbone script
 
 	function progress_handler(e){
 		var perc = e.total / e.loaded * 100;
@@ -95,7 +96,6 @@
 	}
 
 	function load_tree() {
-		// TODO figure out how to get tree_delimeter to possibly replace hard-coded '/'
 		tree = {};
 		tree[tree_delimeter] = {};
 		add_files_to_tree(files);
@@ -158,8 +158,21 @@
 		// display_files();
 	}
 
-	function display_message(message, error) {
+	function make_copy_paste(target_text) {
+		var clip, copy_jq_el, copy_tmpl = '<span class="click-copy" title="Click to copy." data-clipboard-text="{{TEXT}}">Copy</span>';
+		if (win.ZeroClipboard && plugin_url) {
+			copy_jq_el = $(copy_tmpl.replace(/\{\{TEXT\}\}/g, target_text.replace(/'/g, '\'')));
+			clip = new ZeroClipboard(copy_jq_el, {moviePath:plugin_url + 'swf/ZeroClipboard.swf'});
+			return copy_jq_el;
+		}
+		return null;
+	}
+
+	function display_message(message, error, jq_el) {
 		var msg_wrap = $('<p>').html(message);
+		if (jq_el) {
+			msg_wrap.append(jq_el);
+		}
 		if (error) {
 			msg_wrap.addClass(error_class);
 		}
@@ -247,7 +260,8 @@
 		var i = 0, uploads_len = uploads.length,
 			cont = $(cont_pick_jq).val(),
 			path = $(full_path_jq).data('full_path') || '',
-			a_tmpl = '<a href="{{URI}}">{{NAME}}</a>',
+			a_tmpl = '<a target="_blank" href="{{URI}}">{{NAME}}</a>',
+			success_msg,
 			form_data = tests.formdata ? new FormData() : null;
 		if (tests.formdata && (path.length > 0)) {
 			clear_messages();
@@ -281,9 +295,10 @@
 									$(progress_bar_jq).css('width', '0%');
 									if (rjson && rjson.success) {
 										display_message(rjson.message, false);
-										// TODO important - use load_files or the like to update display files
+										// TODO important - use load_files or the like to update files, tree and display
 										for (i = 0; i < rjson.pl.length; i += 1) {
-											display_message(a_tmpl.replace(/\{\{URI\}\}/g, rjson.pl[i].uri).replace(/\{\{NAME\}\}/g, rjson.pl[i].name), false);
+											success_msg = a_tmpl.replace(/\{\{URI\}\}/g, rjson.pl[i].uri).replace(/\{\{NAME\}\}/g, rjson.pl[i].name);
+											display_message(success_msg, false, make_copy_paste(rjson.pl[i].uri));
 										}
 									} else if (rjson && rjson.success === false) {
 										// TODO should probably reload all files by calling get_files so
@@ -291,6 +306,8 @@
 										//		made it then they can check them
 										//		Same with the 'error' function
 										display_message(rjson.message, true);
+										display_message('Trying to reload files in case some files successfully uploaded.', true);
+										get_files(cont);
 									}
 				},
 				'error'		:	function (jqXHR, textStatus, errorThrown) {
@@ -309,23 +326,27 @@
 	}
 
 	function delete_files(form_data) {
+		var cont = $(cont_pick_jq).val();
 		if (tests.formdata && (form_data instanceof FormData)) {
 			clear_messages();
 			form_data.append('action', 'delete_files');
-			form_data.append('from', 'admin');
+			form_data.append('sbts_cf_auth', 'add-later :)');
+			form_data.append('sbts_cf_cont', cont);
+
 			$.ajax({
 				'url'		:	ajaxurl,
 				'type'		:	'post',
 				'data'		:	form_data,
 				'dataType'	:	'json',
 				'success'	:	function (rjson) {
-									var i = 0;
+									var i = 0, del_len;
 									if (rjson && rjson.success) {
 										display_message(rjson.message, false);
-										get_files(display_files);
-										if (rjson.files) {
-											for(del_len = rjson.files.length; i < del_len; i+= 1) {
-												display_message(rjson.files[i].replace('../uploads/', ''), false);
+										if (rjson.pl.length) {
+											del_len = rjson.pl.length;
+											for(; i < del_len; i += 1) {
+												display_message(rjson.pl[i].name, false);
+												// TODO update files, tree and display
 											}
 										}
 									} else if (rjson && (!rjson.success)) {
@@ -356,7 +377,7 @@
 			upload_files(e.dataTransfer.files);
 		};
 	} else {
-		document.getElementById('old_upload').onchange = function () {
+		doc.getElementById('old_upload').onchange = function () {
 			upload_files(this.files);
 		};
 	}
@@ -390,12 +411,23 @@
 		$(this).closest('.path-choice').children('.sub-tree').toggle();
 	});
 	$('.file-list').on('click', '.delete-button', function (e) {
-		// TODO add confirm button
-		var form_data;
-		if (tests.formdata && ($(this).data('file_name').length > 0)) {
-			form_data = new FormData();
-			form_data.append('file[]', $(this).data('file_name'));
-			delete_files(form_data);
+		var form_data, btn = $(this);
+		if (tests.formdata && (btn.data('file_name').length > 0)) {
+			if ('delete' === btn.text().toLowerCase()) {
+				btn.text('Confirm?');
+				btn.data('expire_delete', true);
+				setTimeout(function expire_delete () {
+					if (btn.data('expire_delete')) {
+						btn.text('Delete');
+					}
+				}, 2000);
+			} else if ('confirm?' === btn.text().toLowerCase()) {
+				btn.data('expire_delete', false);
+				btn.text('Deleting...');
+				form_data = new FormData();
+				form_data.append('file[]', btn.data('file_name'));
+				delete_files(form_data);
+			}
 		}
 	});
 	$(cont_pick_jq).on('change', function (e) {
@@ -403,4 +435,4 @@
 		get_files($(cont_pick_jq).val());
 	});
 	get_containers();
-}(jQuery));
+})(window, document, jQuery);

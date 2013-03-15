@@ -56,6 +56,7 @@ if ( !class_exists( 'SBTS_CF_Plugin' ) ) {
 			add_action( 'wp_ajax_get_containers', array( &$this, 'get_containers' ) );
 			add_action( 'wp_ajax_get_files', array( &$this, 'get_files' ) );
 			add_action( 'wp_ajax_upload_files', array( &$this, 'upload_files' ) );
+			add_action( 'wp_ajax_delete_files', array( &$this, 'delete_files' ) );
 
 			// Initialize the return message, the basic pattern of all returned data
 			$this->ret = array( 'success' => false, 'message' => 'Unable to connect.', 'pl' => array() );
@@ -87,7 +88,10 @@ if ( !class_exists( 'SBTS_CF_Plugin' ) ) {
 
 		public function add_js() {
 			wp_enqueue_script( 'sbts-cf-uploader-handlebars', plugin_dir_url() . 'sbts-cf-uploader/js/handlebars.js', array(), false, true );
+			wp_enqueue_script( 'sbts-cf-uploader-zeroclipboard', plugin_dir_url() . 'sbts-cf-uploader/js/ZeroClipboard.min.js', array(), false, true );
 			wp_enqueue_script( 'sbts-cf-uploader-js', plugin_dir_url() . 'sbts-cf-uploader/js/sbts-cf-uploader-core.js', array( 'jquery', 'sbts-cf-uploader-handlebars' ), false, true );
+			$sbts_cf_uploader = array( 'url' => plugin_dir_url() . 'sbts-cf-uploader/' );
+			wp_localize_script( 'sbts-cf-uploader-js', 'sbts_cf_uploader', $sbts_cf_uploader );
 		}
 
 		public function get_containers() {
@@ -118,6 +122,16 @@ if ( !class_exists( 'SBTS_CF_Plugin' ) ) {
 			try {
 				$this->ret['pl'] = $this->cfm->upload_files( $_POST['sbts_cf_cont'], $_POST['sbts_cf_path'] );
 				$this->create_ret( 'uploaded', 'file', 'files', ' Files did not upload to the server.' );
+			} catch ( Exception $e ) {
+				$this->error_ret( $e );
+			}
+			$this->send_ret();
+		}
+
+		public function delete_files() {
+			try {
+				$this->ret['pl'] = $this->cfm->delete_files( $_POST['sbts_cf_cont'], $_POST['file'] );
+				$this->create_ret( 'deleted', 'file', 'files', '' );
 			} catch ( Exception $e ) {
 				$this->error_ret( $e );
 			}

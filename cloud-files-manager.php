@@ -91,9 +91,34 @@ if (! class_exists( 'Cloud_Files_Manager' ) ) {
 			return $names;
 		}
 
+		public function delete_files( $req_container, $names ) {
+			$to_delete = array();
+			$deleted = array();
+			if ( is_array( $names ) ) {
+				// TODO make '/' a configurable delimiter
+				// sanitize path so /media/audio/ or /media/audio or media/audio
+				// becomes a usable media/audio/ to prepend to the file name
+				$this->connect();
+				$container = $this->cf_conn->get_container( $req_container );
+				$to_delete = $this->verify_uploads( $container, $names );
+				foreach ( $to_delete as $delete_obj ) {
+					try {
+						$container->delete_object( $delete_obj['full_name'] );
+						$deleted[] = $delete_obj;
+					} catch ( Exception $e ) {
+						throw $e;
+					}
+				}
+			}
+			return $deleted;
+		}
+
 		private function verify_uploads( $container, $names ) {
 			$files = array();
 			foreach ( $names as $name ) {
+				if ( '/' === substr( $name, 0, 1 ) ) {
+					$name = substr( $name, 1 );
+				}
 				$obj = $container->get_object( $name );
 				$files[] = $this->make_file( $obj );
 			}
