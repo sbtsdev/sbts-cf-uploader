@@ -3,7 +3,7 @@
 Plugin Name: Cloud Files Uploader
 Plugin URI: http://github.com/sbtsdev/cloud-files-uploader
 Description: This plugin allows a user to upload files to Rackspace Cloud Files and interact with them.
-Version: v0.1.0
+Version: v0.1.1
 Author: Joshua Cottrell
 Author URI: http://github.com/jcottrell
 License: GPL2
@@ -24,6 +24,15 @@ License: GPL2
 	along with this program; if not, write to the Free Software
 	Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+
+/*
+ * Version History
+Date		Version	Explanation
+----		-------	-----------
+20130318	0.1.1	Fixed bug: make sure we anticipate another plugin using Cloud Files' php api
+20130315	0.1.0	Initial use: upload (single and multiple), list, delete, switch containers all working
+
+ */
 
 if ( !class_exists( 'SBTS_CF_Plugin' ) ) {
 	class SBTS_CF_Plugin {
