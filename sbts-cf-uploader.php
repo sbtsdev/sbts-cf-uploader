@@ -43,7 +43,9 @@ if ( !class_exists( 'SBTS_CF_Plugin' ) ) {
 			$this->sbts_cf_plugin_settings = new SBTS_CF_Plugin_Settings();
 
 			// Initialize Cloud Files API for Manager to use
-			require_once( sprintf( "%s/php-cloudfiles/cloudfiles.php", $this->plugin_dir ) );
+			if (! class_exists( 'CF_Authentication' ) ) { // play nice with 'other' plugins (and hope they're up to date)
+				require_once( sprintf( "%s/php-cloudfiles/cloudfiles.php", $this->plugin_dir ) );
+			}
 
 			// Initialize Cloud Files Manager
 			require_once( sprintf( "%s/cloud-files-manager.php", $this->plugin_dir ) );
