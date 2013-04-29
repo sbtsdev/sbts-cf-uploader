@@ -219,6 +219,7 @@
 									if (rjson && rjson.success) {
 										display_message(rjson.message, false);
 										load_files(rjson.pl);
+										clip.reposition();
 									} else {
 										display_message(rjson.message || "No files returned.", true);
 									}
@@ -265,13 +266,14 @@
 			form_data = tests.formdata ? new FormData() : null;
 		if (tests.formdata && (path.length > 0)) {
 			clear_messages();
-			for (; i < uploads_len; i+= 1) {
+/*			for (; i < uploads_len; i+= 1) {
 				if (accepted_type[uploads[i].type]) {
 					form_data.append('file[]', uploads[i]);
 				} else {
 					display_message('File type ' + uploads[i].type + ' not permitted.', true);
 				}
 			}
+*/
 			form_data.append('action', 'upload_files');
 			form_data.append('sbts_cf_auth', 'add-later :)');
 			form_data.append('sbts_cf_cont', cont);

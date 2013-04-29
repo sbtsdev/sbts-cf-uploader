@@ -29,6 +29,7 @@ License: GPL2
  * Version History
 Date		Version	Explanation
 ----		-------	-----------
+20130429	0.1.2	Temp fix for uploads so Firefox could do upload; fix to ZeroClipboard to reposition Copy button
 20130318	0.1.1	Fixed bug: make sure we anticipate another plugin using Cloud Files' php api
 20130315	0.1.0	Initial use: upload (single and multiple), list, delete, switch containers all working
 
