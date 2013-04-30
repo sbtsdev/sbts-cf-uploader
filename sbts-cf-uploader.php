@@ -3,7 +3,7 @@
 Plugin Name: Cloud Files Uploader
 Plugin URI: http://github.com/sbtsdev/cloud-files-uploader
 Description: This plugin allows a user to upload files to Rackspace Cloud Files and interact with them.
-Version: v0.1.1
+Version: v0.1.3
 Author: Joshua Cottrell
 Author URI: http://github.com/jcottrell
 License: GPL2
@@ -29,6 +29,11 @@ License: GPL2
  * Version History
 Date		Version	Explanation
 ----		-------	-----------
+20130430	0.1.3	Fixed upload after quick fix for file types (0.1.2 broke it and copy/paste)
+					Fixed copy and paste via hack to ZeroClipboard instance on mouseenter
+					Improved download links with download attribute in anchor tag
+					Fixed fallback for pre-drag-and-drop (or FileReader) browsers
+					Fixed delete so the file listing was removed upon successful delete
 20130429	0.1.2	Temp fix for uploads so Firefox could do upload; fix to ZeroClipboard to reposition Copy button
 20130318	0.1.1	Fixed bug: make sure we anticipate another plugin using Cloud Files' php api
 20130315	0.1.0	Initial use: upload (single and multiple), list, delete, switch containers all working

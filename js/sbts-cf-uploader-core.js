@@ -1,4 +1,4 @@
-(function (win, doc, $) {
+(function (win, doc, $, undefined) {
 	var holder = doc.getElementById('holder'),
 		tests = {
 			filereader: typeof FileReader != 'undefined',
@@ -8,13 +8,14 @@
 		},
 		// TODO load valid types via ajax call to wordpress
 		accepted_type = {
-			'image/png'		: true,
-			'image/jpeg'	: true,
-			'image/gif'		: true,
-			'audio/mpeg'	: true,
-			'audio/mp3'		: true,
-			'video/x-flv'	: true,
-			'video/mp4'		: true
+			'.png'	: true,
+			'.jpeg'	: true,
+			'.gif'	: true,
+			'.mpeg'	: true,
+			'.mp3'	: true,
+			'.flv'	: true,
+			'.m4a'	: true,
+			'.mp4'	: true
 		},
 		tmpl_jq = '#file_up_tmpl',
 		tmpl_st_jq = '#tree_tmpl',
@@ -40,16 +41,17 @@
 		message_jq = '.activity-response',
 		error_class = 'error-text',
 		progress_bar_jq = '#ajax_progress>span',
+		zc_clip,
 		plugin_url = win.sbts_cf_uploader ? win.sbts_cf_uploader.url : ''; // Not a good use of a global, to be fixed when we make this a Backbone script
 
-	function progress_handler(e){
-		var perc = e.total / e.loaded * 100;
+	function progress_handler (e){
+		var perc = e.loaded / e.total * 100;
 		if(e.lengthComputable){
 			$(progress_bar_jq).css('width', perc + '%');
 		}
 	}
 
-	function display_files() {
+	function display_files () {
 		var i = 0, current_path,
 			file_len = files.length,
 			file_list = $(file_list_jq);
@@ -62,7 +64,7 @@
 	// use temp_tree recursively to add tree[tree_delimeter].media.audio.Podcast = {'__files':[4,10,18]}
 	// pa should be in the form pa = ['media', 'audio', 'Podcast']
 	// every listing should have a path and file
-	function add_path_to_tree(temp_tree, pa, i) {
+	function add_path_to_tree (temp_tree, pa, i) {
 		var pa_current = pa.shift();
 		if (! temp_tree[pa_current]) {
 			if (pa.length > 0) {
@@ -85,7 +87,7 @@
 		return temp_tree;
 	}
 
-	function add_files_to_tree(more_files) {
+	function add_files_to_tree (more_files) {
 		var i = 0, file_len = more_files.length,
 			path, pa, path_len;
 		for (; i < file_len; i += 1) {
@@ -95,13 +97,13 @@
 		}
 	}
 
-	function load_tree() {
+	function load_tree () {
 		tree = {};
 		tree[tree_delimeter] = {};
 		add_files_to_tree(files);
 	}
 
-	function get_sub_tree_by_path(path) {
+	function get_sub_tree_by_path (path) {
 		var i = 0, pa, pa_len, sub_tree = tree;
 		if (path !== tree_delimeter) {
 			pa = path.substr(1, path.length - 2).split(tree_delimeter);
@@ -113,7 +115,7 @@
 		return sub_tree;
 	}
 
-	function display_sub_tree(sub_tree, target, building_path) {
+	function display_sub_tree (sub_tree, target, building_path) {
 		$.each(sub_tree, function (index, val) {
 			var st_obj, // object to pass to the template
 				id_post, // what makes the id's unique
@@ -139,39 +141,50 @@
 		});
 	}
 
-	function display_tree_by_path(path, target) {
+	function display_tree_by_path (path, target) {
 		var sub_tree = get_sub_tree_by_path(path);
 		display_sub_tree(sub_tree, target, '');
 	}
 
-	function display_tree() {
+	function display_tree () {
 		var file_list = $(file_list_jq);
 		file_list.children().remove();
 		file_list.append('<ul id="' + tree_root_id + '"></ul>');
 		display_tree_by_path(tree_delimeter, file_list.children(tree_root_jq));
 	}
 
-	function load_files(f) {
+	function load_files (f) {
 		files = f;
 		load_tree();
 		display_tree();
 		// display_files();
 	}
 
-	function make_copy_paste(target_text) {
-		var clip, copy_jq_el, copy_tmpl = '<span class="click-copy" title="Click to copy." data-clipboard-text="{{TEXT}}">Copy</span>';
+	function adjust_clip (e) {
+		var offset = $(this).offset();
+		if (zc_clip) {
+			zc_clip.htmlBridge.style.top = offset.top + 'px';
+			zc_clip.htmlBridge.style.left = offset.left + 'px';
+		}
+	}
+
+	function create_clip () {
+		zc_clip = new ZeroClipboard($(message_jq).find('.click-copy'), {moviePath:plugin_url + 'swf/ZeroClipboard.swf'});
+	}
+
+	function copy_paste_skeleton (target_text) {
+		var copy_jq_el, copy_tmpl = '<span class="click-copy" title="Click to copy." data-clipboard-text="{{TEXT}}">Copy</span>';
 		if (win.ZeroClipboard && plugin_url) {
 			copy_jq_el = $(copy_tmpl.replace(/\{\{TEXT\}\}/g, target_text.replace(/'/g, '\'')));
-			clip = new ZeroClipboard(copy_jq_el, {moviePath:plugin_url + 'swf/ZeroClipboard.swf'});
 			return copy_jq_el;
 		}
 		return null;
 	}
 
-	function display_message(message, error, jq_el) {
-		var msg_wrap = $('<p>').html(message);
+	function display_message (message, error, jq_el) {
+		var msg_wrap = $('<div>').html(message);
 		if (jq_el) {
-			msg_wrap.append(jq_el);
+			msg_wrap.prepend(jq_el);
 		}
 		if (error) {
 			msg_wrap.addClass(error_class);
@@ -179,11 +192,15 @@
 		$(message_jq).append(msg_wrap);
 	}
 
-	function clear_messages() {
+	function clear_messages () {
+		if (zc_clip) {
+			ZeroClipboard.destroy();
+			zc_clip = undefined;
+		}
 		$(message_jq).children().remove();
 	}
 
-	function load_container_picker() {
+	function load_container_picker () {
 		var i = 0, sel = $('#sbts_cf_uploader_container'), size, mbgb = 'Mb',
 			tmpl = '<option value="{{NAME}}">{{NAME}} ({{COUNT}}) [{{SIZE}}]</option>',
 			cl = containers ? containers.length : 0;
@@ -200,12 +217,12 @@
 		}
 	}
 
-	function load_containers(conts) {
+	function load_containers (conts) {
 		containers = conts;
 		load_container_picker();
 	}
 
-	function get_files(container_to_get) {
+	function get_files (container_to_get) {
 		if (container_to_get) {
 			$.ajax({
 				'url'	: ajaxurl,
@@ -219,7 +236,6 @@
 									if (rjson && rjson.success) {
 										display_message(rjson.message, false);
 										load_files(rjson.pl);
-										clip.reposition();
 									} else {
 										display_message(rjson.message || "No files returned.", true);
 									}
@@ -233,7 +249,7 @@
 		}
 	}
 
-	function get_containers() {
+	function get_containers () {
 		clear_messages();
 		$.ajax({
 			'url'	: ajaxurl,
@@ -257,23 +273,23 @@
 		});
 	}
 
-	function upload_files(uploads) {
-		var i = 0, uploads_len = uploads.length,
+	function upload_files (uploads) {
+		var i = 0, uploads_len = uploads.length, u_type,
 			cont = $(cont_pick_jq).val(),
 			path = $(full_path_jq).data('full_path') || '',
-			a_tmpl = '<a target="_blank" href="{{URI}}">{{NAME}}</a>',
+			a_tmpl = '<a download class="upload-link" target="_blank" href="{{URI}}">{{NAME}}</a>',
 			success_msg,
 			form_data = tests.formdata ? new FormData() : null;
 		if (tests.formdata && (path.length > 0)) {
 			clear_messages();
-/*			for (; i < uploads_len; i+= 1) {
-				if (accepted_type[uploads[i].type]) {
+			for (; i < uploads_len; i+= 1) {
+				u_type = uploads[i].name.substr(uploads[i].name.lastIndexOf('.'));
+				if (accepted_type[u_type]) {
 					form_data.append('file[]', uploads[i]);
 				} else {
-					display_message('File type ' + uploads[i].type + ' not permitted.', true);
+					display_message('File type ' + u_type.replace('.', '') + ' not permitted.', true);
 				}
 			}
-*/
 			form_data.append('action', 'upload_files');
 			form_data.append('sbts_cf_auth', 'add-later :)');
 			form_data.append('sbts_cf_cont', cont);
@@ -300,8 +316,9 @@
 										// TODO important - use load_files or the like to update files, tree and display
 										for (i = 0; i < rjson.pl.length; i += 1) {
 											success_msg = a_tmpl.replace(/\{\{URI\}\}/g, rjson.pl[i].uri).replace(/\{\{NAME\}\}/g, rjson.pl[i].name);
-											display_message(success_msg, false, make_copy_paste(rjson.pl[i].uri));
+											display_message(success_msg, false, copy_paste_skeleton(rjson.pl[i].uri));
 										}
+										create_clip();
 									} else if (rjson && rjson.success === false) {
 										// TODO should probably reload all files by calling get_files so
 										//		that if the user tried to upload many files and only a few
@@ -327,7 +344,7 @@
 		}
 	}
 
-	function delete_files(form_data) {
+	function delete_files (form_data) {
 		var cont = $(cont_pick_jq).val();
 		if (tests.formdata && (form_data instanceof FormData)) {
 			clear_messages();
@@ -349,6 +366,7 @@
 											for(; i < del_len; i += 1) {
 												display_message(rjson.pl[i].name, false);
 												// TODO update files, tree and display
+												$(tree_root_jq).find('[data-file_name="' + rjson.pl[i].full_name + '"]').closest('.file-listing-wrap').remove();
 											}
 										}
 									} else if (rjson && (!rjson.success)) {
@@ -368,9 +386,10 @@
 	if ((tests.filereader === false) || (tests.formdata === false) || (tests.dnd === false)) {
 		$('.fallbacks').css('display', 'block');
 		$('.space-age').css('display', 'none');
-	}
-
-	if (tests.dnd) {
+		doc.getElementById('old_upload').onchange = function () {
+			upload_files(this.files);
+		};
+	} else {
 		holder.ondragover = function () { this.className = 'hover'; return false; };
 		holder.ondragend = function () { this.className = ''; return false; };
 		holder.ondrop = function (e) {
@@ -378,12 +397,9 @@
 			e.preventDefault();
 			upload_files(e.dataTransfer.files);
 		};
-	} else {
-		doc.getElementById('old_upload').onchange = function () {
-			upload_files(this.files);
-		};
 	}
-	function path_add_extra(existing, user_added) {
+
+	function path_add_extra (existing, user_added) {
 		if (user_added && user_added.substr(0, 1) === tree_delimeter) {
 			user_added = user_added.substr(1);
 		}
@@ -393,7 +409,7 @@
 		user_added = encodeURI(user_added).replace(/%20/g, ' ');
 		return (tree_delimeter === existing ? existing : existing + tree_delimeter) + (user_added ? user_added + tree_delimeter : '');
 	}
-	function update_upload_path(existing_path, user_added) {
+	function update_upload_path (existing_path, user_added) {
 		var full_path = path_add_extra(existing_path, user_added);
 		$(full_path_jq).data('existing_path', existing_path);
 		$(full_path_jq).data('full_path', full_path);
@@ -436,5 +452,6 @@
 		clear_messages();
 		get_files($(cont_pick_jq).val());
 	});
+	$(message_jq).on('mouseenter', '.click-copy', adjust_clip);
 	get_containers();
 })(window, document, jQuery);
