@@ -1,7 +1,7 @@
 <div class="wrap sbts-cf-uploader">
     <h2>Cloud Files Uploader</h2>
 	<div class="file-upload">
-		<div class="instruct"><p>Drag images here to upload</p></div>
+		<div class="instruct"><p>Drag files here to upload</p></div>
 		<div class="space-age" id="holder">
 			<div class="activity-response"></div>
 		</div>
@@ -27,7 +27,7 @@
 			<div class="file-listing">
 				<span class="file-name-label" for="file_name">{{full_name}} ({{type}}) {{size}} ({{last_mod}})</span>
 				<button class="delete-button" data-file_name="{{full_name}}">Delete</button>
-				<a download href="{{uri}}">Download</a>
+				<a target="_blank" download href="{{uri}}">Download</a>
 			</div>
 		</li>
 	</script>

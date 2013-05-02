@@ -3,7 +3,7 @@
 Plugin Name: Cloud Files Uploader
 Plugin URI: http://github.com/sbtsdev/cloud-files-uploader
 Description: This plugin allows a user to upload files to Rackspace Cloud Files and interact with them.
-Version: v0.1.3
+Version: v0.1.4
 Author: Joshua Cottrell
 Author URI: http://github.com/jcottrell
 License: GPL2
@@ -29,6 +29,9 @@ License: GPL2
  * Version History
 Date		Version	Explanation
 ----		-------	-----------
+20130502	0.1.4	Allowed uploads to execute as long as needed
+					Fix for plugin_dir_url php notice
+					Cosmetic language change, from images to files on template
 20130430	0.1.3	Fixed upload after quick fix for file types (0.1.2 broke it and copy/paste)
 					Fixed copy and paste via hack to ZeroClipboard instance on mouseenter
 					Improved download links with download attribute in anchor tag
@@ -100,14 +103,14 @@ if ( !class_exists( 'SBTS_CF_Plugin' ) ) {
 		}
 
 		public function add_css() {
-			wp_enqueue_style( 'sbts-cf-uploader-css', plugin_dir_url() . 'sbts-cf-uploader/css/sbts-cf-uploader-style.css' );
+			wp_enqueue_style( 'sbts-cf-uploader-css', plugin_dir_url( '' ) . 'sbts-cf-uploader/css/sbts-cf-uploader-style.css' );
 		}
 
 		public function add_js() {
-			wp_enqueue_script( 'sbts-cf-uploader-handlebars', plugin_dir_url() . 'sbts-cf-uploader/js/handlebars.js', array(), false, true );
-			wp_enqueue_script( 'sbts-cf-uploader-zeroclipboard', plugin_dir_url() . 'sbts-cf-uploader/js/ZeroClipboard.min.js', array(), false, true );
-			wp_enqueue_script( 'sbts-cf-uploader-js', plugin_dir_url() . 'sbts-cf-uploader/js/sbts-cf-uploader-core.js', array( 'jquery', 'sbts-cf-uploader-handlebars' ), false, true );
-			$sbts_cf_uploader = array( 'url' => plugin_dir_url() . 'sbts-cf-uploader/' );
+			wp_enqueue_script( 'sbts-cf-uploader-handlebars', plugin_dir_url( '' ) . 'sbts-cf-uploader/js/handlebars.js', array(), false, true );
+			wp_enqueue_script( 'sbts-cf-uploader-zeroclipboard', plugin_dir_url( '' ) . 'sbts-cf-uploader/js/ZeroClipboard.min.js', array(), false, true );
+			wp_enqueue_script( 'sbts-cf-uploader-js', plugin_dir_url( '' ) . 'sbts-cf-uploader/js/sbts-cf-uploader-core.js', array( 'jquery', 'sbts-cf-uploader-handlebars' ), false, true );
+			$sbts_cf_uploader = array( 'url' => plugin_dir_url( '' ) . 'sbts-cf-uploader/' );
 			wp_localize_script( 'sbts-cf-uploader-js', 'sbts_cf_uploader', $sbts_cf_uploader );
 		}
 
@@ -137,6 +140,7 @@ if ( !class_exists( 'SBTS_CF_Plugin' ) ) {
 
 		public function upload_files() {
 			try {
+				set_time_limit( 0 );
 				$this->ret['pl'] = $this->cfm->upload_files( $_POST['sbts_cf_cont'], $_POST['sbts_cf_path'] );
 				$this->create_ret( 'uploaded', 'file', 'files', ' Files did not upload to the server.' );
 			} catch ( Exception $e ) {
