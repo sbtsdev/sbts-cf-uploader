@@ -114,12 +114,36 @@ if ( !class_exists( 'SBTS_CF_Plugin' ) ) {
 			wp_localize_script( 'sbts-cf-uploader-js', 'sbts_cf_uploader', $sbts_cf_uploader );
 		}
 
+		public function my_get_containers() {
+			try {
+				return $this->cfm->get_containers();
+			} catch ( Exception $e ) {
+				$this->error_ret( $e );
+			}
+			return array();
+		}
+
 		public function get_containers() {
 			// TODO uncomment for production
 			//$this->check_ajax_referer( 'get_containers', 'sbts_cf_auth', true );
+			$this->ret['pl'] = $this->cfm->get_containers();
+			$this->create_ret( 'found', 'container', 'containers', ' Use Wordpress -> Settings -> Media to create.' );
+			$this->send_ret();
+		}
+
+		public function my_get_file( $container, $name ) {
 			try {
-				$this->ret['pl'] = $this->cfm->get_containers();
-				$this->create_ret( 'found', 'container', 'containers', ' Use Wordpress -> Settings -> Media to create.' );
+				return $this->cfm->get_file( $container, $file_name );
+			} catch ( Exception $e ) {
+				$this->error_ret( $e );
+			}
+			return array();
+		}
+
+		public function get_file() {
+			try {
+				$this->ret['pl'] = $this->my_get_file( $_GET['sbts_cf_cont'], $_GET['sbts_cf_file_name'] );
+				$this->create_ret( 'found', 'file', 'files', '' );
 			} catch ( Exception $e ) {
 				$this->error_ret( $e );
 			}

@@ -8,6 +8,9 @@ if (! class_exists( 'Cloud_Files_Manager' ) ) {
 		function __construct( $settings ) {
 			$this->cf_settings = $settings;
 			$this->cf_containers = array();
+			if (! class_exists( 'Mp3Info' ) ) {
+				require_once( 'inc/mp3info.class.php' );
+			}
 		}
 
 		public function connect() {
@@ -38,6 +41,19 @@ if (! class_exists( 'Cloud_Files_Manager' ) ) {
 			return $this->cf_containers;
 		}
 
+		public function get_file( $req_container, $req_file_name ) {
+			$file = array();
+			try {
+				$this->connect();
+				$container = $this->cf_conn->get_container( $req_container );
+				$object = $container->get_object( $req_file_name );
+				$file = $this->make_file( $object );
+			} catch ( Exception $e ) {
+				throw $e;
+			}
+			return $file;
+		}
+
 		public function get_files( $req_container, $req_prefix = NULL ) {
 			$files = array();
 			try {
@@ -58,6 +74,9 @@ if (! class_exists( 'Cloud_Files_Manager' ) ) {
 
 		public function upload_files( $req_container, $req_path ) {
 			$names = array();
+			if ( class_exists( 'Mp3Info' ) ) {
+				$mp3_info = new Mp3Info();
+			}
 			if ( is_array( $_FILES['file']['name'] ) ) {
 				// TODO make '/' a configurable delimiter
 				// sanitize path so /media/audio/ or /media/audio or media/audio
@@ -75,6 +94,15 @@ if (! class_exists( 'Cloud_Files_Manager' ) ) {
 				foreach ( $_FILES['file']['name'] as $index => $fname ) {
 					// TODO check file type $_FILES['file']['type'] against array of predefined permissible types (audio/mpeg or video/x-flv or video/mp4 etc.)
 					$cf_obj = $container->create_object( $req_path . $fname );
+					// try to add audio duration to metadata
+					if ( $mp3_info ) {
+						$mp3_data = $mp3_info->GetMp3Info( $_FILES['file']['tmp_name'][$index] );
+						if ( $mp3_data ) {
+							$mdata = $cf_obj->metadata;
+							$mdata['rduration'] = $mp3_data['playtime_string'];
+							$cf_obj->metadata = $mdata;
+						}
+					}
 					try {
 						// should we bother using move_uploaded_file to verify that the file "was uploaded using PHP's HTTP POST upload mechanism"?
 						// load_from_filename either returns true or throws an error
@@ -138,7 +166,9 @@ if (! class_exists( 'Cloud_Files_Manager' ) ) {
 				'name'		=> $name,
 				'uri'		=> $obj->public_uri(),
 				'type'		=> $obj->content_type,
+				'rsize'		=> $obj->content_length,
 				'size'		=> $size . " Mb",
+				'mdata'		=> $obj->metadata,
 				'last_mod'	=> $last_mod
 			);
 		}
