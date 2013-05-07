@@ -29,7 +29,9 @@ License: GPL2
  * Version History
 Date		Version	Explanation
 ----		-------	-----------
-20130506	0.1.5	Added single file functions and duration metadata for audio files
+20130506	0.2.0	Added custom functionality to store the duration of audio/mpeg files in CF metadata
+					Added single get_file function for other plugins to use
+					Improved function structure
 20130502	0.1.4	Allowed uploads to execute as long as needed
 					Fix for plugin_dir_url php notice
 					Cosmetic language change, from images to files on template
