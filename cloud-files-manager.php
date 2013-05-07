@@ -47,7 +47,7 @@ if (! class_exists( 'Cloud_Files_Manager' ) ) {
 				$this->connect();
 				$container = $this->cf_conn->get_container( $req_container );
 				$object = $container->get_object( $req_file_name );
-				$file = $this->make_file( $object );
+				$file[] = $this->make_file( $object );
 			} catch ( Exception $e ) {
 				throw $e;
 			}
@@ -99,7 +99,7 @@ if (! class_exists( 'Cloud_Files_Manager' ) ) {
 						$mp3_data = $mp3_info->GetMp3Info( $_FILES['file']['tmp_name'][$index] );
 						if ( $mp3_data ) {
 							$mdata = $cf_obj->metadata;
-							$mdata['rduration'] = $mp3_data['playtime_string'];
+							$mdata['Rduration'] = $mp3_data['playtime_string'];
 							$cf_obj->metadata = $mdata;
 						}
 					}

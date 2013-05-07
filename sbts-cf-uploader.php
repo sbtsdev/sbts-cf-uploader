@@ -3,7 +3,7 @@
 Plugin Name: Cloud Files Uploader
 Plugin URI: http://github.com/sbtsdev/cloud-files-uploader
 Description: This plugin allows a user to upload files to Rackspace Cloud Files and interact with them.
-Version: v0.1.4
+Version: v0.1.5
 Author: Joshua Cottrell
 Author URI: http://github.com/jcottrell
 License: GPL2
@@ -29,6 +29,7 @@ License: GPL2
  * Version History
 Date		Version	Explanation
 ----		-------	-----------
+20130506	0.1.5	Added single file functions and duration metadata for audio files
 20130502	0.1.4	Allowed uploads to execute as long as needed
 					Fix for plugin_dir_url php notice
 					Cosmetic language change, from images to files on template
@@ -126,12 +127,12 @@ if ( !class_exists( 'SBTS_CF_Plugin' ) ) {
 		public function get_containers() {
 			// TODO uncomment for production
 			//$this->check_ajax_referer( 'get_containers', 'sbts_cf_auth', true );
-			$this->ret['pl'] = $this->cfm->get_containers();
+			$this->ret['pl'] = $this->my_get_containers();
 			$this->create_ret( 'found', 'container', 'containers', ' Use Wordpress -> Settings -> Media to create.' );
 			$this->send_ret();
 		}
 
-		public function my_get_file( $container, $name ) {
+		public function my_get_file( $container, $file_name ) {
 			try {
 				return $this->cfm->get_file( $container, $file_name );
 			} catch ( Exception $e ) {

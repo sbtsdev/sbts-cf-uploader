@@ -5,7 +5,7 @@
 	// Library is packaged thin with only basic mp3 support.
 	// Concept with this library is to get the information without downlaoding the entire file.
 	// for efficienccy
-	
+
 	class Mp3Info {
 		//var $m_DownloadBytesLimit = 1638400; // 200K (200*1024*8) bytes file
 		var $m_DownloadBytesLimit = 204800; // 25K (25*1024*8) bytes file
@@ -20,7 +20,7 @@
 		{
 			// Empty for now
 		}
-		
+
 		/*
 		Set how much of the media file to download. Default: 25K
 		*/
@@ -28,7 +28,7 @@
 		{
 			$this->m_DownloadBytesLimit = $limit;
 		}
-		
+
 		/*
 		Set how many times we can follow a HTTP 30x header redirect before we fail.
 		*/
@@ -36,7 +36,7 @@
 		{
 			$this->m_RedirectLimit = $limit;
 		}
-		
+
 		/*
 		Set the user agent to be sent by this plugin
 		*/
@@ -44,7 +44,7 @@
 		{
 			$this->m_UserAgent = $user_agent;
 		}
-		
+
 		/*
 		Return the last set error message
 		*/
@@ -52,7 +52,7 @@
 		{
 			return $this->m_error;
 		}
-		
+
 		/*
 		Set the last error message
 		*/
@@ -60,7 +60,7 @@
 		{
 			$this->m_error = $msg;
 		}
-		
+
 		/*
 		Get the length in bytes of the file to download.
 		*/
@@ -68,7 +68,7 @@
 		{
 			return $this->m_ContentLength;
 		}
-		
+
 		/*
 		Get the number of times we followed 30x header redirects
 		*/
@@ -87,20 +87,20 @@
 				$this->SetError('Server must either have php.ini allow_url_fopen enabled or PHP CURL library loaded in order to continue.');
 				return false;
 			}
-			
+
 			if( !ini_get( 'allow_url_fopen' ) )
 				return $this->DownloadAlt($url);
-			
+
 			// The following code relies on fopen_url capability.
 			if( $RedirectCount > $this->m_RedirectLimit )
 			{
 				$this->SetError( 'Download exceeded redirect limit of '.$this->m_RedirectLimit .'.' );
 				return false;
 			}
-			
+
 			$this->m_ContentLength = false;
 			$this->m_RedirectCount = $RedirectCount;
-			
+
 			$urlParts = parse_url($url);
 			if( !isset( $urlParts['path']) )
 				$urlParts['path'] = '/';
@@ -108,7 +108,7 @@
 				$urlParts['port'] = 80;
 			if( !isset( $urlParts['scheme']) )
 				$urlParts['scheme'] = 'http';
-			
+
 			$fp = fsockopen($urlParts['host'], $urlParts['port'], $errno, $errstr, 30);
 			if ($fp)
 			{
@@ -118,7 +118,7 @@
 				$RequestHeaders .= "Connection: Close\r\n";
 				$RequestHeaders .= "User-Agent: {this->m_UserAgent}\r\n";
 				fwrite($fp, $RequestHeaders."\r\n");
-				
+
 				$Redirect = false;
 				$RedirectURL = false;
 				$ContentLength = false;
@@ -131,13 +131,19 @@
 						break; // Something happened
 					if ($line == "\r\n")
 						break; // Okay we're ending the headers, now onto the content
-					
+
 					$line = rtrim($line); // Clean out the new line characters
 
-					list($key, $value) = explode(':', $line, 2);
+					$line_exploded = explode( ':', $line, 2 );
+					if ( count( $line_exploded ) < 2 ) {
+						$key = $line_exploded[0];
+						$value = '';
+					} else {
+						list($key, $value) = $line_exploded;
+					}
 					$key = trim($key);
 					$value = trim($value);
-					
+
 					if( stristr($line, '301 Moved Permanently') || stristr($line, '302 Found') || stristr($line, '307 Temporary Redirect') )
 					{
 						$Redirect = true; // We are dealing with a redirect, lets handle it
@@ -155,7 +161,7 @@
 						}
 					}
         }
-				
+
 				// Loop through the content till we reach our limit...
 				$Content = '';
 				if( $this->m_DownloadBytesLimit )
@@ -168,7 +174,7 @@
 					}
 				}
 				fclose($fp);
-				
+
 				// If we're dealing with a redirect, lets call our nested function call now
 				if( $Redirect )
 				{
@@ -182,17 +188,17 @@
 						$TempFile = tempnam(get_temp_dir(), 'wp_powerpress');
 					else // otherwise use the default path
 						$TempFile = tempnam('/tmp', 'wp_powerpress');
-					
+
 					if( $TempFile === false )
 					{
 						$this->SetError('Unable to save media information to temporary directory.');
 						return false;
 					}
-					
+
 					$fp = fopen( $TempFile, 'w' );
 					fwrite($fp, $Content);
 					fclose($fp);
-					
+
 					if( $ContentLength )
 						$this->m_ContentLength = $ContentLength;
 					return $TempFile;
@@ -201,7 +207,7 @@
 			$this->SetError('Unable to connect to host '.$urlParts['host'].'.');
 			return false;
 		}
-		
+
 		/*
 		Alternative method (curl) for downloading portion of a media file
 		*/
@@ -212,14 +218,14 @@
 			curl_setopt($curl, CURLOPT_URL, $url);
 			curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
 			curl_setopt($curl, CURLOPT_HEADER, true); // header will be at output
-			curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'HEAD'); // HTTP request 
+			curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'HEAD'); // HTTP request
 			curl_setopt($curl, CURLOPT_NOBODY, true );
 			curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
 			curl_setopt($curl, CURLOPT_MAXREDIRS, $this->m_RedirectLimit);
 			$Headers = curl_exec($curl);
 			$ContentLength = curl_getinfo($curl, CURLINFO_CONTENT_LENGTH_DOWNLOAD);
 			$HttpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-			
+
 			if( $HttpCode != 200 )
 			{
 				switch( $HttpCode )
@@ -235,19 +241,19 @@
 				}
 				return false;
 			}
-			
+
 			// Next get the first chunk of the file...
 			curl_setopt($curl, CURLOPT_URL, $url);
 			curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
 			curl_setopt($curl, CURLOPT_HEADER, false); // header will be at output
-			curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'GET'); // HTTP request 
+			curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'GET'); // HTTP request
 			curl_setopt($curl, CURLOPT_NOBODY, false );
 			curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
 			curl_setopt($curl, CURLOPT_MAXREDIRS, $this->m_RedirectLimit);
 			curl_setopt($curl, CURLOPT_RANGE, "0-{$this->m_DownloadBytesLimit}");
 			$Content = curl_exec($curl);
 			curl_close($curl);
-			
+
 			if( $Content )
 			{
 				global $TempFile;
@@ -255,26 +261,26 @@
 					$TempFile = tempnam(get_temp_dir(), 'wp_powerpress');
 				else // otherwise use the default path
 					$TempFile = tempnam('/tmp', 'wp_powerpress');
-				
+
 				if( $TempFile === false )
 				{
 					$this->SetError('Unable to save media information to temporary directory.');
 					return false;
 				}
-				
+
 				$fp = fopen( $TempFile, 'w' );
 				fwrite($fp, $Content);
 				fclose($fp);
-				
+
 				if( $ContentLength )
 					$this->m_ContentLength = $ContentLength;
 				return $TempFile;
 			}
-			
+
 			$this->SetError('Unable to download media.');
 			return false;
 		}
-		
+
 		/*
 		Get the MP3 information
 		*/
@@ -292,7 +298,7 @@
 			{
 				$LocalFile = $File;
 			}
-			
+
 			// Hack so this works in Windows, helper apps are not necessary for what we're doing anyway
 			define('GETID3_HELPERAPPSDIR', true);
 			require_once(dirname(__FILE__).'/getid3/getid3.php');
@@ -300,7 +306,7 @@
 			$FileInfo = $getID3->analyze( $LocalFile, $this->m_ContentLength );
 			if( $DeleteFile )
 				@unlink($LocalFile);
-				
+
 			if( $FileInfo )
 			{
 				// Remove extra data that is not necessary for us to return...
@@ -310,18 +316,18 @@
 					unset($FileInfo['id3v2']);
 				if( isset($FileInfo['id3v1']) )
 					unset($FileInfo['id3v1']);
-					
+
 				$FileInfo['playtime_seconds'] = round($FileInfo['playtime_seconds']);
 				return $FileInfo;
 			}
-			
+
 			return false;
 		}
 	};
-	
+
 	/*
 	// Example usage:
-	
+
 	$Mp3Info = new Mp3Info();
 	if( $Data = $Mp3Info->GetMp3Info('http://www.podcampohio.com/podpress_trac/web/177/0/TS-107667.mp3') )
 	{
@@ -338,6 +344,6 @@
 		exit;
 	}
 	*/
-	
-	
+
+
 ?>
