@@ -9,6 +9,7 @@
 		// TODO load valid types via ajax call to wordpress
 		accepted_type = {
 			'.png'	: true,
+			'.jpg'	: true,
 			'.jpeg'	: true,
 			'.gif'	: true,
 			'.mpeg'	: true,
