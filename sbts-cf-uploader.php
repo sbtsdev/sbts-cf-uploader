@@ -3,7 +3,7 @@
 Plugin Name: Cloud Files Uploader
 Plugin URI: http://github.com/sbtsdev/cloud-files-uploader
 Description: This plugin allows a user to upload files to Rackspace Cloud Files and interact with them.
-Version: v0.2.0
+Version: v0.2.1
 Author: Joshua Cottrell
 Author URI: http://github.com/jcottrell
 License: GPL2
@@ -263,6 +263,11 @@ if ( !class_exists( 'SBTS_CF_Plugin' ) ) {
 							$upload_dir = wp_upload_dir();
 							$url = str_replace( rtrim( $upload_dir['baseurl'], '/' ), 'http://cdn.albertmohler.com', $url );
 						} else { */
+						if ( class_exists( 'MP_WP_Root_Relative_URLS' ) ) {
+							 // Root Relative plugin mangles url when parse_url returns no properties (perhaps caused by long urls or dashes in subdomain)
+							remove_filter( 'image_send_to_editor', array( 'MP_WP_Root_Relative_URLS', 'root_relative_image_urls' ), 1, 8  );
+							remove_filter( 'media_send_to_editor', array( 'MP_WP_Root_Relative_URLS', 'root_relative_media_urls' ), 1, 3 );
+						}
 						$url = rtrim( $file_container['url'], '/' ) . '/' . $file_name;
 					}
 				}
@@ -304,7 +309,7 @@ if ( !class_exists( 'SBTS_CF_Plugin' ) ) {
 		private function file_array_from_metadata( $metadata ) {
 			$files = array();
 			if (! empty( $metadata ) ) {
-				$this->debug_test( 'file_array_from_metadata', $metadata );
+				// $this->debug_test( 'file_array_from_metadata', $metadata );
 				$subdir_arr = explode( DIRECTORY_SEPARATOR, $metadata['file'] );
 				array_pop( $subdir_arr ); // not concerned with the linux/windows file name right now
 				$files[] = $this->wp_file_mover_info( $metadata['file'] );

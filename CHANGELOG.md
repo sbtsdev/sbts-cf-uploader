@@ -3,6 +3,7 @@ SBTS CF Uploader Version History
 
 Date		Version	Explanation
 ----		-------	-----------
+20130801	0.2.1	Added remove_filter for two Root Relative filters that caused Insert into Post to return wrong
 20130723	0.2.0	Migration to php-opencloud API
 					Added Wordpress upload/sideload option
 					Added jpg to permitted file types
