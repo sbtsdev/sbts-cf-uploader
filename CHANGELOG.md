@@ -3,6 +3,7 @@ SBTS CF Uploader Version History
 
 Date		Version	Explanation
 ----		-------	-----------
+20130809	0.2.2	Allow faster return of containers through caching
 20130801	0.2.1	Added remove_filter for two Root Relative filters that caused Insert into Post to return wrong
 20130723	0.2.0	Migration to php-opencloud API
 					Added Wordpress upload/sideload option
@@ -21,5 +22,3 @@ Date		Version	Explanation
 20130429	0.1.2	Temp fix for uploads so Firefox could do upload; fix to ZeroClipboard to reposition Copy button
 20130318	0.1.1	Fixed bug: make sure we anticipate another plugin using Cloud Files' php api
 20130315	0.1.0	Initial use: upload (single and multiple), list, delete, switch containers all working
-
- */

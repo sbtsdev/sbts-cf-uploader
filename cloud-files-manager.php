@@ -27,14 +27,16 @@ if (! class_exists( 'Cloud_Files_Manager' ) ) {
 			);
 			try {
 				$cf_conn = new Rackspace( RACKSPACE_US, $credentials );
-				$this->cf_obj_store = $cf_conn->ObjectStore( 'cloudFiles', 'ORD' );
+				$this->cf_obj_store = $cf_conn->ObjectStore( 'cloudFiles', 'DFW' );
 			} catch ( Exception $e ) {
 				throw $e;
 			}
 		}
 
 		public function get_containers() {
-			// TODO only return containers that have CDN enabled
+			if ( isset( $this->cf_containers ) && (! empty( $this->cf_containers ) ) ) {
+				return $this->cf_containers;
+			}
 			$this->connect();
 			$list = $this->cf_obj_store->CDN()->ContainerList( array( 'enabled_only' => true ) );
 			while ( $cdn_container = $list->Next() ) {
