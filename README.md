@@ -12,11 +12,11 @@ In your plugins directory (/wordpress/wp-content/plugins/):
 2. Go to Plugins
 3. Enable Cloud Files Uploader
 4. Go to Settings > Media
-5. Under Cloud Files Settings add your Cloud Files username and API key
-    A. Add your Cloud Files username
-    B. Add your Cloud Files API key
-    C. Save the Media settings
-    D. Add the Cloud Files container that Wordpress will use to upload files to
+5. Under Cloud Files Settings add your Cloud Files username and API key  
+    A. Add your Cloud Files username  
+    B. Add your Cloud Files API key  
+    C. Save the Media settings  
+    D. Add the Cloud Files container that Wordpress will use to upload files to  
 
 ## Usage
 Wordpress media uploads can be used normally. Uploaded media will be put on Cloud Files and references to Cloud files will
