@@ -3,7 +3,7 @@
 Plugin Name: Cloud Files Uploader
 Plugin URI: http://github.com/sbtsdev/cloud-files-uploader
 Description: This plugin allows a user to upload files to Rackspace Cloud Files and interact with them.
-Version: v0.2.1
+Version: v0.3.0
 Author: Joshua Cottrell
 Author URI: http://github.com/jcottrell
 License: GPL2
@@ -41,12 +41,22 @@ if ( !class_exists( 'SBTS_CF_Plugin' ) ) {
 		* Construct the plugin object
 		*/
 		public function __construct() {
-			$this->plugin_dir = dirname( __FILE__ );
+            add_action( 'init', array( &$this, 'construct' ) );
+		}
 
+        public function construct() {
+			$this->plugin_dir = dirname( __FILE__ );
 			/* Initialization section */
 			// Settings
 			require_once( sprintf( "%s/settings.php", $this->plugin_dir ) );
 			$this->sbts_cf_plugin_settings = new SBTS_CF_Plugin_Settings();
+			add_filter( 'wp_get_attachment_url', array( &$this, 'rewrite_attachment_url' ), 10, 2 ); // try to get any reference to the link, especially the link that shows directly after the upload!
+
+            // all other activities are admin only
+            if (! current_user_can( 'upload_files' ) ) {
+                return false;
+            }
+
 			// Cloud Files Manager
 			require_once( sprintf( "%s/cloud-files-manager.php", $this->plugin_dir ) );
 			$this->cfm = new Cloud_Files_Manager( $this->sbts_cf_plugin_settings->get_settings() );
@@ -63,9 +73,9 @@ if ( !class_exists( 'SBTS_CF_Plugin' ) ) {
 			add_action( 'wp_ajax_delete_files', array( &$this, 'delete_files' ) );
 			/* Wordpress Uploads Actions and Filters */
 			add_filter( 'wp_update_attachment_metadata', array( &$this, 'wp_upload_via_metadata' ), 10, 2 ); // called when metadata is created and updated
+            add_filter( 'wp_calculate_image_srcset', array( &$this, 'wp_calc_img_srcset' ), 10, 5 );
 			add_action( 'delete_attachment', array( &$this, 'delete_attachment' ) ); // called when an attachment is deleted through the WP interface
-			add_filter( 'wp_get_attachment_url', array( &$this, 'rewrite_attachment_url' ), 10, 2 ); // try to get any reference to the link, especially the link that shows directly after the upload!
-		}
+        }
 
 		public function add_menu() {
 			$media_page_hook = add_media_page(
@@ -94,7 +104,7 @@ if ( !class_exists( 'SBTS_CF_Plugin' ) ) {
 		public function add_js() {
 			wp_enqueue_script( 'sbts-cf-uploader-handlebars', plugin_dir_url( '' ) . 'sbts-cf-uploader/js/handlebars.js', array(), false, true );
 			wp_enqueue_script( 'sbts-cf-uploader-zeroclipboard', plugin_dir_url( '' ) . 'sbts-cf-uploader/js/ZeroClipboard.min.js', array(), false, true );
-			wp_enqueue_script( 'sbts-cf-uploader-js', plugin_dir_url( '' ) . 'sbts-cf-uploader/js/sbts-cf-uploader-core.js', array( 'jquery', 'sbts-cf-uploader-handlebars' ), false, true );
+			wp_enqueue_script( 'sbts-cf-uploader-js', plugin_dir_url( '' ) . 'sbts-cf-uploader/js/sbts-cf-uploader-core-v0.3.js', array( 'jquery', 'sbts-cf-uploader-handlebars' ), false, true );
 			$sbts_cf_uploader = array( 'url' => plugin_dir_url( '' ) . 'sbts-cf-uploader/' );
 			wp_localize_script( 'sbts-cf-uploader-js', 'sbts_cf_uploader', $sbts_cf_uploader );
 		}
@@ -222,6 +232,19 @@ if ( !class_exists( 'SBTS_CF_Plugin' ) ) {
 			return $metadata;
 		}
 
+        public function wp_calc_img_srcset( $sources, $size_array, $image_src, $image_meta, $attachment_id ) {
+            $file_container = get_post_meta( $attachment_id, '_sbts_cf_container', true );
+            $cdn_uri = rtrim( $file_container['url'], '/' ) . '/' . $file_name;
+            $upload_root = '/wp-content/uploads';
+            $url_cutoff = strlen( $upload_root );
+            foreach ( $sources as &$src ) {
+                if ( $upload_root === substr( $src['url'], 0, $url_cutoff ) ) {
+                    $src['url'] = rtrim( $cdn_uri, '/' ) . substr( $src['url'], $url_cutoff );
+                }
+            }
+            return $sources;
+        }
+
 		public function delete_attachment( $attach_id ) {
 			$settings = $this->sbts_cf_plugin_settings->get_settings();
 			if ( isset( $settings ) && isset( $settings['wp_upload_container'] ) && ( strlen( $settings['wp_upload_container'] ) > 0 ) ) {
@@ -235,7 +258,10 @@ if ( !class_exists( 'SBTS_CF_Plugin' ) ) {
 		public function rewrite_attachment_url( $url, $attach_id ) {
 			// $this->debug_test('wp_get_attachment_url (' . $attach_id . ')', $url);
 			$settings = $this->sbts_cf_plugin_settings->get_settings();
-			if ( isset( $settings ) && isset( $settings['wp_upload_container'] ) && ( strlen( $settings['wp_upload_container'] ) > 0 ) ) {
+            if ( isset( $settings )
+                && isset( $settings['wp_upload_container'] )
+                && ( strlen( $settings['wp_upload_container'] ) > 0 ) )
+            {
 				$files = array();
 				$is_on_cf = false;
 				$container = $settings['wp_upload_container'];
@@ -258,11 +284,6 @@ if ( !class_exists( 'SBTS_CF_Plugin' ) ) {
 					// make sure the container they want to use and the one the file is in are the same
 					$file_container = get_post_meta( $attach_id, '_sbts_cf_container', true );
 					if ( (! empty( $file_container ) ) && ( $file_container['name'] === $container ) ) {
-						/* if yet-to-be-created $setting['cdn_url'] then replace with that instead
-						if ( isset( $settings['cdn_url'] ) && ( strlen( $settings['cdn_url'] ) > 0 ) ) {
-							$upload_dir = wp_upload_dir();
-							$url = str_replace( rtrim( $upload_dir['baseurl'], '/' ), 'http://cdn.albertmohler.com', $url );
-						} else { */
 						if ( class_exists( 'MP_WP_Root_Relative_URLS' ) ) {
 							 // Root Relative plugin mangles url when parse_url returns no properties (perhaps caused by long urls or dashes in subdomain)
 							remove_filter( 'image_send_to_editor', array( 'MP_WP_Root_Relative_URLS', 'root_relative_image_urls' ), 1, 8  );

@@ -6,6 +6,9 @@ if (! class_exists( 'SBTS_CF_Plugin_Settings' ) ) {
 	class SBTS_CF_Plugin_Settings {
 
 		public function __construct() {
+            if (! current_user_can( 'upload_files' ) ) {
+                return false;
+            }
 			// register actions
 			add_action( 'admin_init', array( &$this, 'admin_init' ) );
 		}
